@@ -178,7 +178,22 @@ Réponds uniquement en JSON valide.`;
     } catch (err) {
       res.status(500).json({ message: 'Erreur serveur' });
     }
+  },
+  async getHomeStats(req, res) {
+  try {
+    const weekly = await IncidentModel.getWeeklyReports();
+    const total = await IncidentModel.getTotalIncidents();
+
+    res.status(200).json({
+      weekly_reports: parseInt(weekly.total),
+      total_incidents: parseInt(total.total)
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Erreur serveur' });
   }
+}
 };
+
+
 
 module.exports = ChatController;

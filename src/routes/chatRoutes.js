@@ -13,8 +13,7 @@ router.post('/chat', protect, restrictTo('citoyen'), ChatController.chat);
 
 router.get('/incidents', protect, restrictTo('mairie'), ChatController.getIncidents);
 router.get('/stats', protect, restrictTo('mairie'), ChatController.getStats);
-
-
+router.get('/home', protect, restrictTo('citoyen'), ChatController.getHomeStats);
 router.get('/zones', ChatController.getZones);
 
 module.exports = router;

@@ -46,6 +46,21 @@ const IncidentModel = {
     );
     return rows;
   }
+async getTotalIncidents() {
+  const { rows } = await pool.query(`
+    SELECT COUNT(*) AS total FROM incidents
+  `);
+  return rows[0];
+},
+
+async getWeeklyReports() {
+  const { rows } = await pool.query(`
+    SELECT COUNT(*) AS total
+    FROM incidents
+    WHERE created_at >= NOW() - INTERVAL '7 days'
+  `);
+  return rows[0];
+}
 };
 
 module.exports = IncidentModel;
