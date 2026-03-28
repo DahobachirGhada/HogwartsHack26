@@ -33,7 +33,7 @@ Règles:
 
 const ChatController = {
 
-  // GET /api/quartiers
+
   async getQuartiers(req, res) {
     try {
       const quartiers = await QuartierModel.findAll();
@@ -43,7 +43,6 @@ const ChatController = {
     }
   },
 
-  // POST /api/chat/start — user picks quartier, session begins
   async startSession(req, res) {
     try {
       const { quartier_id } = req.body;
@@ -51,8 +50,6 @@ const ChatController = {
 
       const quartier = await QuartierModel.findById(quartier_id);
       if (!quartier) return res.status(404).json({ message: 'Quartier non trouvé' });
-
-      // Delete old session if exists
       const old = await ChatSessionModel.findByUserId(user_id);
       if (old) await ChatSessionModel.delete(old.id);
 
@@ -73,20 +70,17 @@ const ChatController = {
     }
   },
 
-  // POST /api/chat — handle each message
   async chat(req, res) {
     try {
       const { message, session_id, image_url } = req.body;
       const user_id = req.user.id;
-
-      // Get session
       const session = await ChatSessionModel.findByUserId(user_id);
       if (!session) return res.status(400).json({ message: 'Session non trouvée. Choisissez d\'abord un quartier.' });
 
       const collected = session.collected || {};
 
-      // Call Gemini
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      
+      const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite'})
 
       const prompt = `${SYSTEM_PROMPT}
 
@@ -98,7 +92,7 @@ Réponds uniquement en JSON valide.`;
       const result = await model.generateContent(prompt);
       const raw = result.response.text();
 
-      // Parse Gemini JSON response
+
       let parsed;
       try {
         const clean = raw.replace(/```json|```/g, '').trim();
@@ -107,7 +101,7 @@ Réponds uniquement en JSON valide.`;
         return res.status(200).json({ message: "Pouvez-vous reformuler ?" });
       }
 
-      // Merge extracted data into session
+  
       const updated = {
         ...collected,
         ...Object.fromEntries(
@@ -115,7 +109,6 @@ Réponds uniquement en JSON valide.`;
         )
       };
 
-      // If Gemini says done and we have type + description → save incident
       if (parsed.done && updated.type && updated.description) {
         const incident = await IncidentModel.create({
           user_id,
@@ -128,13 +121,11 @@ Réponds uniquement en JSON valide.`;
           image_url: image_url || null
         });
 
-        // Ping n8n webhook
         if (process.env.N8N_WEBHOOK_URL) {
           axios.post(process.env.N8N_WEBHOOK_URL, { incident_id: incident.id })
             .catch(err => console.error('n8n ping failed:', err.message));
         }
 
-        // Clean up session
         await ChatSessionModel.delete(session.id);
 
         return res.status(200).json({
@@ -144,7 +135,6 @@ Réponds uniquement en JSON valide.`;
         });
       }
 
-      // Update session with new collected data
       await ChatSessionModel.update(session.id, {
         step: updated.type ? (updated.description ? 'done' : 'awaiting_description') : 'awaiting_type',
         collected: updated
@@ -161,7 +151,6 @@ Réponds uniquement en JSON valide.`;
     }
   },
 
-  // GET /api/incidents
   async getIncidents(req, res) {
     try {
       const { quartier, type, date } = req.query;
@@ -172,7 +161,6 @@ Réponds uniquement en JSON valide.`;
     }
   },
 
-  // GET /api/zones
   async getZones(req, res) {
     try {
       const ZoneDangerModel = require('../models/zonedangermodel');
@@ -183,7 +171,6 @@ Réponds uniquement en JSON valide.`;
     }
   },
 
-  // GET /api/stats
   async getStats(req, res) {
     try {
       const stats = await IncidentModel.getStats();
