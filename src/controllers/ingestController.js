@@ -1,83 +1,60 @@
-const fs = require('fs');
-const path = require('path');
 const { neon } = require('@neondatabase/serverless');
-const { PDFLoader } = require('@langchain/community/document_loaders/fs/pdf');
-const { RecursiveCharacterTextSplitter } = require('@langchain/textsplitters');
 const { pipeline } = require('@xenova/transformers');
 const { LocalIndex } = require('vectra');
+const path = require('path');
 
 const IngestController = {
-  ingest: async (req, res) => {
+  sync: async (req, res) => {
     try {
-      console.log('🔄 n8n Sync Triggered: Starting Ingestion...');
+      console.log('🚨 n8n Incident Sync Triggered...');
       
-      if (!process.env.DATABASE_URL) throw new Error('DATABASE_URL missing from .env');
       const sql = neon(process.env.DATABASE_URL);
       const indexPath = path.join(process.cwd(), 'algiers_index');
+      const index = new LocalIndex(indexPath);
 
-      // 1. Wipe old index to prevent duplicates
-      if (fs.existsSync(indexPath)) {
-        console.log("🧹 Clearing old index...");
-        fs.rmSync(indexPath, { recursive: true, force: true });
+      // 1. Safety check: Ensure the base index exists
+      if (!await index.isIndexCreated()) {
+        return res.status(400).json({ 
+          error: "Base index not found. Please run the static ingestion first." 
+        });
       }
 
-      const index = new LocalIndex(indexPath);
-      await index.createIndex();
+      // 2. Fetch incidents (e.g., last 24 hours)
+      const incidents = await sql`
+        SELECT type, description, location, status, created_at 
+        FROM incidents 
+        WHERE created_at > NOW() - INTERVAL '24 hours'
+      `;
 
-      // 2. Load Model
+      if (incidents.length === 0) {
+        return res.json({ message: "No new incidents to sync." });
+      }
+
+      // 3. Load embedding model
       const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
-      // 3. Process PDFs
-      const dataPath = path.join(process.cwd(), 'DATA');
-      const pdfFiles = [];
-      const walkDir = (dir) => {
-        for (const file of fs.readdirSync(dir)) {
-          const full = path.join(dir, file);
-          if (fs.statSync(full).isDirectory()) walkDir(full);
-          else if (file.endsWith('.pdf')) pdfFiles.push(full);
-        }
-      };
-      walkDir(dataPath);
-
-      let docs = [];
-      for (const filePath of pdfFiles) {
-        const loader = new PDFLoader(filePath);
-        docs.push(...await loader.load());
-      }
-
-      const splitter = new RecursiveCharacterTextSplitter({ chunkSize: 500, chunkOverlap: 50 });
-      const splitDocs = await splitter.splitDocuments(docs);
-
-      // 4. Fetch Neon Data
-      const quartiers = await sql`SELECT nom, lat, lng FROM quartiers`;
-
-      // 5. Ingest to Vectra
-      for (const doc of splitDocs) {
-        const output = await embedder(doc.pageContent, { pooling: 'mean', normalize: true });
-        await index.insertItem({
-          vector: Array.from(output.data),
-          metadata: { text: doc.pageContent, source: 'pdf_knowledge' }
-        });
-      }
-
-      for (const row of quartiers) {
-        const text = `Quartier: ${row.nom}. lat=${row.lat}, lng=${row.lng}.`;
+      // 4. Append to Vectra Index
+      for (const row of incidents) {
+        const text = `LIVE INCIDENT: ${row.type}. Description: ${row.description}. Location: ${row.location}. Status: ${row.status}.`;
+        
         const output = await embedder(text, { pooling: 'mean', normalize: true });
+        
+        // .insertItem adds to the index without deleting current data
         await index.insertItem({
           vector: Array.from(output.data),
-          metadata: { text, source: 'neon_db' }
+          metadata: { text, source: 'live_incidents' }
         });
       }
 
-      console.log('✅ Sync Successful!');
-      return res.status(200).json({ 
+      console.log(`✅ Successfully appended ${incidents.length} incidents.`);
+      res.status(200).json({ 
         status: "success", 
-        message: `Ingested ${splitDocs.length} PDF chunks and ${quartiers.length} database rows.` 
+        count: incidents.length 
       });
 
     } catch (error) {
-      console.error('❌ Ingestion Error:', error);
-      return res.status(500).json({ status: "error", message: error.message });
+      console.error('❌ Incident Sync Error:', error);
+      res.status(500).json({ error: error.message });
     }
   }
 };

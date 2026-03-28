@@ -17,6 +17,6 @@ router.get('/stats', protect, restrictTo('mairie'), ChatController.getStats);
 router.get('/home', protect, restrictTo('citoyen'), ChatController.getHomeStats);
 router.get('/zones', ChatController.getZones);
 
+router.post('/ingest', IngestController.sync);
 
-router.post('/ingest', IngestController.ingest);
 module.exports = router;
