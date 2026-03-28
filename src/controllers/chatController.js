@@ -16,8 +16,6 @@ async function classifyZones() {
     const incidents = await IncidentModel.findAll_forN8N();
 
     if (!incidents.length) return;
-
-    // Group incidents by quartier
     const grouped = {};
     for (const inc of incidents) {
       if (!inc.quartier) continue;
@@ -37,8 +35,6 @@ async function classifyZones() {
       if (inc.danger_level === 'Medium') grouped[inc.quartier].medium++;
       if (inc.danger_level === 'Low')    grouped[inc.quartier].low++;
     }
-
-    // Score each zone
     for (const zone of Object.values(grouped)) {
       let score;
       let recommandation;
@@ -205,7 +201,7 @@ const ChatController = {
           danger_level: updated.danger_level || null
         });
 
-        // Classify zones after saving incident
+  
         await classifyZones();
 
         await ChatSessionModel.delete(session.id);

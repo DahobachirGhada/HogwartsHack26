@@ -23,7 +23,6 @@ const AnalyticsController = {
         ORDER BY date ASC
       `);
 
-      // 2. Répartition par catégorie
       const { rows: byCategory } = await pool.query(`
         SELECT 
           type AS category,
@@ -35,7 +34,7 @@ const AnalyticsController = {
         ORDER BY total DESC
       `);
 
-      // 3. Top quartiers touchés
+
       const { rows: byQuartier } = await pool.query(`
         SELECT 
           quartier,
@@ -48,8 +47,6 @@ const AnalyticsController = {
         ORDER BY total DESC
         LIMIT 6
       `);
-
-      // 4. Stats globales
       const { rows: stats } = await pool.query(`
         SELECT
           COUNT(*) AS total,
