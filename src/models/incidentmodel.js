@@ -45,7 +45,7 @@ const IncidentModel = {
       `SELECT id, type, description, quartier, lat, lng, since, created_at FROM incidents ORDER BY created_at DESC`
     );
     return rows;
-  }
+  },
 async getTotalIncidents() {
   const { rows } = await pool.query(`
     SELECT COUNT(*) AS total FROM incidents
