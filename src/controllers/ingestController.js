@@ -7,8 +7,9 @@ const IngestController = {
   sync: async (req, res) => {
     try {
       console.log('🚨 n8n Incident Sync Triggered...');
-
+      console.log("📍 process.cwd():", process.cwd());
       const indexPath = path.join(process.cwd(), 'algiers_index');
+      console.log("📂 indexPath:", indexPath);
       const index = new LocalIndex(indexPath);
 
       if (!await index.isIndexCreated()) {
@@ -17,7 +18,12 @@ const IngestController = {
         });
       }
 
-
+      if (!fs.existsSync(indexPath)) {
+        console.log("❌ Index folder does NOT exist, creating...");
+        fs.mkdirSync(indexPath, { recursive: true });
+      } else {
+        console.log("✅ Index folder exists");
+      }
       const incidents = req.body.incidents;
 
       if (!incidents || incidents.length === 0) {
@@ -43,6 +49,8 @@ const IngestController = {
           }
         });
       }
+      await index.save();
+      console.log("💾 Index saved to disk");
       const files = fs.readdirSync(indexPath);
       console.log("📂 Current files in index folder:", files);
       const stats = fs.statSync(path.join(indexPath, 'index.json')); 
