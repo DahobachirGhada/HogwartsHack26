@@ -12,10 +12,18 @@ async function ingest() {
   const sql = neon(process.env.DATABASE_URL);
   const indexPath = path.join(process.cwd(), 'algiers_index');
 
+  if (fs.existsSync(indexPath)) {
+    console.log("🧹 Clearing old index for a fresh sync...");
+    fs.rmSync(indexPath, { recursive: true, force: true });
+}
+
+  // Now create it fresh
+  const index = new LocalIndex(indexPath);
+  await index.createIndex();
+  
   console.log(' Loading embedding model...');
   const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
 
-  const index = new LocalIndex(indexPath);
   if (!await index.isIndexCreated()) {
     console.log('Creating Vectra index...');
     await index.createIndex();
