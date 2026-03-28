@@ -1,7 +1,7 @@
 const { pipeline } = require('@xenova/transformers');
 const { LocalIndex } = require('vectra');
 const path = require('path');
-
+const fs = require('fs');
 
 const IngestController = {
   sync: async (req, res) => {
@@ -43,6 +43,10 @@ const IngestController = {
           }
         });
       }
+      const files = fs.readdirSync(indexPath);
+      console.log("📂 Current files in index folder:", files);
+      const stats = fs.statSync(path.join(indexPath, 'index.json')); 
+      console.log("🕒 Index last modified:", stats.mtime);
 
       // NOTE: In Vectra, insertItem writes to the index. 
       // If you still don't see changes, it's often a pathing issue on Render.
