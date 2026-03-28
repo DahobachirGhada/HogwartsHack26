@@ -1,4 +1,3 @@
-const { neon } = require('@neondatabase/serverless');
 const { pipeline } = require('@xenova/transformers');
 const { LocalIndex } = require('vectra');
 const path = require('path');
@@ -8,7 +7,6 @@ const IngestController = {
     try {
       console.log('🚨 n8n Incident Sync Triggered...');
       
-      const sql = neon(process.env.DATABASE_URL);
       const indexPath = path.join(process.cwd(), 'algiers_index');
       const index = new LocalIndex(indexPath);
 
@@ -20,13 +18,9 @@ const IngestController = {
       }
 
       // 2. Fetch incidents (e.g., last 24 hours)
-      const incidents = await sql`
-        SELECT type, description, quartier, lat, lng, since, danger_level 
-        FROM incidents 
-        WHERE created_at > NOW() - INTERVAL '24 hours'
-      `;
+      const incidents = req.body.incidents;
 
-      if (incidents.length === 0) {
+      if (!incidents || incidents.length === 0) {
         return res.json({ message: "No new incidents to sync." });
       }
 
@@ -42,13 +36,17 @@ const IngestController = {
         // .insertItem adds to the index without deleting current data
         await index.insertItem({
           vector: Array.from(output.data),
-          metadata: { text, source: 'live_incidents' }
+          metadata: { text, source: 'live_incidents', id: row.id, timestamp: row.created_at }
         });
       }
 
-      console.log(`✅ Successfully appended ${incidents.length} incidents.`);
+      await index.upsertIndex(); 
+
+      console.log(`✅ Successfully updated algiers_index with ${incidents.length} new records.`);
+
       res.status(200).json({ 
         status: "success", 
+        message: "Index updated on disk",
         count: incidents.length 
       });
 
