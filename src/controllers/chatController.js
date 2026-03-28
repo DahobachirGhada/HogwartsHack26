@@ -6,9 +6,68 @@ const { pipeline } = require('@xenova/transformers');
 const IncidentModel = require('../models/incidentmodel');
 const ChatSessionModel = require('../models/chatsessionmodel');
 const QuartierModel = require('../models/quartiermodel');
-const axios = require('axios');
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
+// ─── Zone classification ─────────────────────────────────────────────────────
+async function classifyZones() {
+  try {
+    const ZoneDangerModel = require('../models/zonedangermodel');
+    const incidents = await IncidentModel.findAll_forN8N();
+
+    if (!incidents.length) return;
+
+    // Group incidents by quartier
+    const grouped = {};
+    for (const inc of incidents) {
+      if (!inc.quartier) continue;
+      if (!grouped[inc.quartier]) {
+        grouped[inc.quartier] = {
+          nom: inc.quartier,
+          lat: inc.lat,
+          lng: inc.lng,
+          total: 0,
+          high: 0,
+          medium: 0,
+          low: 0
+        };
+      }
+      grouped[inc.quartier].total++;
+      if (inc.danger_level === 'High')   grouped[inc.quartier].high++;
+      if (inc.danger_level === 'Medium') grouped[inc.quartier].medium++;
+      if (inc.danger_level === 'Low')    grouped[inc.quartier].low++;
+    }
+
+    // Score each zone
+    for (const zone of Object.values(grouped)) {
+      let score;
+      let recommandation;
+
+      if (zone.high >= 1 || zone.total >= 5) {
+        score = 'High';
+        recommandation = `Zone critique — ${zone.total} incidents dont ${zone.high} urgents. Intervention immédiate requise.`;
+      } else if (zone.medium >= 2 || zone.total >= 3) {
+        score = 'Medium';
+        recommandation = `Zone à surveiller — ${zone.total} incidents signalés. Intervention recommandée.`;
+      } else {
+        score = 'Low';
+        recommandation = `Zone stable — ${zone.total} incident(s) mineur(s) signalé(s).`;
+      }
+
+      await ZoneDangerModel.upsert({
+        nom: zone.nom,
+        lat: zone.lat,
+        lng: zone.lng,
+        score,
+        recommandation
+      });
+    }
+
+    console.log(`✅ Zones classified: ${Object.keys(grouped).length} zones updated`);
+  } catch (err) {
+    console.error('classifyZones error:', err.message);
+  }
+}
 
 let embedderInstance = null;
 
@@ -145,10 +204,10 @@ const ChatController = {
           since: updated.since || null, image_url: image_url || null,
           danger_level: updated.danger_level || null
         });
-        if (process.env.N8N_WEBHOOK_URL) {
-          axios.post(process.env.N8N_WEBHOOK_URL, { incident_id: incident.id })
-            .catch(err => console.error('n8n ping failed:', err.message));
-        }
+
+        // Classify zones after saving incident
+        await classifyZones();
+
         await ChatSessionModel.delete(session.id);
         return res.status(200).json({ message: parsed.message, done: true, incident_id: incident.id });
       }
