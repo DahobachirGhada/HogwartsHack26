@@ -2,15 +2,16 @@ const pool = require('../config/db');
 const bcrypt = require('bcryptjs');
 
 const UserModel = {
-  async create({ name, email, password, role_id = 1 }) {
-    const hashed = await bcrypt.hash(password, 12);
-    const { rows } = await pool.query(
-      `INSERT INTO users (name, email, password, role_id)
-       VALUES ($1, $2, $3, $4) RETURNING id, name, email, role_id, created_at`,
-      [name, email, hashed, role_id]
-    );
-    return rows[0];
-  },
+  async create({ name, email, password, phone, wilaya, role_id = 1 }) {
+  const hashed = await bcrypt.hash(password, 12);
+  const { rows } = await pool.query(
+    `INSERT INTO users (name, email, password, phone, wilaya, role_id)
+     VALUES ($1, $2, $3, $4, $5, $6) 
+     RETURNING id, name, email, phone, wilaya, role_id, created_at`,
+    [name, email, hashed, phone, wilaya, role_id]
+  );
+  return rows[0];
+},
 
   async findByEmail(email) {
     const { rows } = await pool.query(
