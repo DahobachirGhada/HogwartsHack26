@@ -21,7 +21,7 @@ const IngestController = {
 
       // 2. Fetch incidents (e.g., last 24 hours)
       const incidents = await sql`
-        SELECT type, description, quartier, Iat, Ing, since, danger_level 
+        SELECT type, description, quartier, lat, lng, since, danger_level 
         FROM incidents 
         WHERE created_at > NOW() - INTERVAL '24 hours'
       `;
