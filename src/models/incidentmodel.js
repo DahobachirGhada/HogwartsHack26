@@ -2,12 +2,12 @@ const pool = require('../config/db');
 
 const IncidentModel = {
 
-  async create({ user_id, type, description, quartier, lat, lng, since, image_url }) {
+  async create({ user_id, type, description, quartier, lat, lng, since, image_url, danger_level }) {
     const { rows } = await pool.query(
-      `INSERT INTO incidents (user_id, type, description, quartier, lat, lng, since, image_url)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO incidents (user_id, type, description, quartier, lat, lng, since, image_url, danger_level)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING *`,
-      [user_id, type, description, quartier, lat, lng, since, image_url || null]
+      [user_id, type, description, quartier, lat, lng, since, image_url || null, danger_level || null]
     );
     return rows[0];
   },
@@ -46,21 +46,21 @@ const IncidentModel = {
     );
     return rows;
   },
-async getTotalIncidents() {
-  const { rows } = await pool.query(`
-    SELECT COUNT(*) AS total FROM incidents
-  `);
-  return rows[0];
-},
 
-async getWeeklyReports() {
-  const { rows } = await pool.query(`
-    SELECT COUNT(*) AS total
-    FROM incidents
-    WHERE created_at >= NOW() - INTERVAL '7 days'
-  `);
-  return rows[0];
-}
+  async getTotalIncidents() {
+    const { rows } = await pool.query(`SELECT COUNT(*) AS total FROM incidents`);
+    return rows[0];
+  },
+
+  async getWeeklyReports() {
+    const { rows } = await pool.query(`
+      SELECT COUNT(*) AS total
+      FROM incidents
+      WHERE created_at >= NOW() - INTERVAL '7 days'
+    `);
+    return rows[0];
+  }
+
 };
 
 module.exports = IncidentModel;
