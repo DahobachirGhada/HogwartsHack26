@@ -9,28 +9,13 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_ADMIN_API_KEY);
 const prioritiesController = {
   getBriefing: async (req, res) => {
     try {
-      const sql = neon(process.env.DATABASE_URL);
+      const { currentIncidents, patterns } = req.body;
+      if (!currentIncidents || currentIncidents.length === 0) {
+            return res.json({ message: "No incidents provided by n8n." });
+      }
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
       console.log("📊 Generating Admin Briefing with RAG...");
-
-      // 1️⃣ Fetch Live Incidents
-      const currentIncidents = await sql`
-        SELECT id, type, description, quartier, lat, lng, created_at, danger_level, status 
-        FROM incidents 
-        WHERE status = 'open'
-        ORDER BY created_at DESC
-      `;
-
-      // 2️⃣ Fetch Historical Patterns
-      const patterns = await sql`
-        SELECT quartier, type, COUNT(*) as occurrence 
-        FROM incidents 
-        WHERE created_at > NOW() - INTERVAL '7 days'
-        GROUP BY quartier, type
-        HAVING COUNT(*) >= 1
-      `;
-
       if (currentIncidents.length === 0) {
         return res.json({ message: "No new incidents to report today. All quiet!" });
       }
