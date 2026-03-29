@@ -11,9 +11,9 @@ router.get('/analytics', AnalyticsController.getAnalytics);
 
 router.get('/alerts', AlertsController.getAlerts);
 router.get('/alerts/history', AlertsController.getAlertHistory);
-router.post('/priorities', prioritiesController.getBriefing);
+router.get('/priorities', prioritiesController.getBriefing);
 
 
-//router.put('/priorities/:quartier/resolve', PrioritiesController.resolveZone);
+router.put('/priorities/:id/resolve', prioritiesController.resolveIncident);
 
 module.exports = router;
