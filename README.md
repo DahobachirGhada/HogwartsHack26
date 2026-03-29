@@ -1,4 +1,4 @@
-# 🏙️ SafeCity
+# SafeCity
 
 > Empowering citizens. Informing municipalities. Making Algiers safer — one report at a time.
 
@@ -42,4 +42,13 @@ backend/
 │   └── server.js                  # server bootstrap
 └── seed.js                        # populate quartiers table (run once)
 ```
-## Backend Structure
+## AI Implementation
+The user can use the chatbot to :
+- Report an incident or an event in your city -Citizen Interface
+  * open the chatbot
+  * express the event in naturel language
+  * incase of insufficiant informations the bot will ask you to complete them, necessary Informations include : (Description, Localisation)
+  * the bot will then access the event based on three levels of danger (High,Medium,Low)
+  * it will send these information to the admin dashboard
+  * and finally reassure the user that his worries will be taken care of as soon as possible and ask if it needs any more assistance
+
