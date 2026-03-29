@@ -1,9 +1,0 @@
-This is the data that changes every day. This is what makes your bot "smart" about recent events.
-
-Recent Incident Logs: A text export of the last 30 days of reports from your database.
-
-Example: If someone reported a "Large pothole on Rue Palestine" yesterday, and a new user asks "Is Rue Palestine safe?", the RAG will find that recent report and say, "Be careful, a hazard was reported there 24 hours ago."
-
-Weather or Traffic Alerts: If you can scrape or download local bulletins, these are great for the "Safe Spots" questions.
-
-"Black Spots" Data: Research papers or city reports that identify historically dangerous areas (e.g., specific winding stretches of the RN6 known for accidents).
