@@ -42,13 +42,16 @@ const prioritiesController = {
       if (await index.isIndexCreated()) {
         try {
           const { pipeline } = require('@xenova/transformers');
-          const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2');
-          const query = currentIncidents.map(i => `${i.type} ${i.quartier}`).join(' ');
-          const output = await embedder(query, { pooling: 'mean', normalize: true });
+          const embedder = await pipeline('feature-extraction', 'Xenova/all-MiniLM-L6-v2', {
+            progress_callback: null
+          });
+          const queryText = currentIncidents.map(i => `${i.type} ${i.quartier}`).join(' ');
+          const output = await embedder(queryText, { pooling: 'mean', normalize: true });
           const vector = Array.from(output.data);
           const results = await index.queryItems(vector, 5);
-          contextDocs = results.map(r => r.item.metadata.text).join('\n');
-        } catch {
+          contextDocs = results.map(r => r.item.metadata.text).join('\n---\n');
+        } catch(ragError) {
+          console.error("RAG/Embedding bypassed due to environment constraints:", ragError.message);
           contextDocs = '';
         }
       }
