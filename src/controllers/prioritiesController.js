@@ -12,13 +12,21 @@ const prioritiesController = {
   getBriefing: async (req, res) => {
     try {
       const { currentIncidents } = req.body;
-      const patterns = await sql`
+      if (!currentIncidents || !Array.isArray(currentIncidents) || currentIncidents.length === 0) {
+        return res.status(200).json({ 
+          summary: "No active incidents reported. The city status is currently nominal.", 
+          top_priorities: [] 
+        });
+      }
+
+      const patternResult = await pool.query`
         SELECT quartier, type, COUNT(*) as occurrence 
         FROM incidents 
         WHERE created_at > NOW() - INTERVAL '7 days'
         GROUP BY quartier, type
         HAVING COUNT(*) >= 1
       `;
+      const patterns = patternResult.rows;
 
       if (!currentIncidents || currentIncidents.length === 0) {
         return res.json({ message: "No incidents to report. All quiet!" });

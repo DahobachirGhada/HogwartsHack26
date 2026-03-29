@@ -13,7 +13,7 @@ router.get('/analytics', AnalyticsController.getAnalytics);
 router.get('/alerts', AlertsController.getAlerts);
 router.get('/alerts/history', AlertsController.getAlertHistory);
 router.post('/priorities', prioritiesController.getBriefing);
-router.get('aitable', getLatestThree);
+router.get('/aitable', getLatestThree);
 
 router.put('/priorities/:id/resolve', prioritiesController.resolveIncident);
 
