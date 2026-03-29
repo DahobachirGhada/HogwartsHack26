@@ -9,7 +9,15 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_ADMIN_API_KEY);
 const prioritiesController = {
   getBriefing: async (req, res) => {
     try {
-      const { currentIncidents, patterns } = req.body;
+      const { currentIncidents } = req.body;
+      const patterns = await sql`
+        SELECT quartier, type, COUNT(*) as occurrence 
+        FROM incidents 
+        WHERE created_at > NOW() - INTERVAL '7 days'
+        GROUP BY quartier, type
+        HAVING COUNT(*) >= 1
+      `;
+
       if (!currentIncidents || currentIncidents.length === 0) {
             return res.json({ message: "No incidents provided by n8n." });
       }
