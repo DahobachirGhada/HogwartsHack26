@@ -15,6 +15,6 @@ router.get('/alerts/history', AlertsController.getAlertHistory);
 router.post('/priorities', prioritiesController.getBriefing);
 router.get('aitable', aitableController.getLatestThree);
 
-//router.put('/priorities/:quartier/resolve', PrioritiesController.resolveZone);
+router.put('/priorities/:id/resolve', prioritiesController.resolveIncident);
 
 module.exports = router;

@@ -11,7 +11,7 @@ const AnalyticsController = {
       else if (period === 'year') interval = '1 year';
       else interval = '30 days';
 
-      // 1. Signalements par jour
+  
       const { rows: byDay } = await pool.query(`
         SELECT 
           DATE(created_at) AS date,
